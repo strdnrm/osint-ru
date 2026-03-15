@@ -2,14 +2,16 @@ package models
 
 // SearchQuery — входные данные от пользователя
 type SearchQuery struct {
-	LastName   string `json:"last_name"`
-	FirstName  string `json:"first_name"`
-	MiddleName string `json:"middle_name"`
-	BirthDate  string `json:"birth_date"` // DD.MM.YYYY
-	INN        string `json:"inn"`
-	Phone      string `json:"phone"`
-	Email      string `json:"email"`
-	Region     string `json:"region"`
+	LastName    string `json:"last_name"`
+	FirstName   string `json:"first_name"`
+	MiddleName  string `json:"middle_name"`
+	BirthDate   string `json:"birth_date"` // DD.MM.YYYY
+	INN         string `json:"inn"`
+	Phone       string `json:"phone"`
+	Email       string `json:"email"`
+	Region      string `json:"region"`
+	PhotoURL    string `json:"photo_url"`    // URL внешнего изображения
+	PhotoBase64 string `json:"photo_base64"` // base64 загруженного файла
 }
 
 // SourceResult — результат поиска из одного источника

@@ -9,7 +9,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OSINT-RU — Поиск по открытым государственным источникам России</title>
-  <meta name="description" content="Инструмент поиска по открытым публичным государственным реестрам РФ: ФССП, ФНС, ГАС Правосудие, Федресурс, Росреестр">
+  <meta name="description" content="Инструмент поиска по открытым публичным государственным реестрам РФ: ФССП, ФНС, ГАС Правосудие, Федресурс, Росреестр, соцсети">
   <link rel="preconnect" href="https://api.fontshare.com">
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&f[]=jet-brains-mono@400,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -62,10 +62,10 @@
         <div class="page-header">
           <div class="page-title-group">
             <h1 class="page-title">Поиск по реестрам</h1>
-            <span class="page-subtitle">Открытые государственные источники РФ</span>
+            <span class="page-subtitle">Открытые государственные источники РФ + социальные сети</span>
           </div>
           <div class="header-badges">
-            <span class="badge badge-ok">6 источников</span>
+            <span class="badge badge-ok">8 источников</span>
             <span class="badge badge-law">ФЗ №262, №229, №129</span>
           </div>
         </div>
@@ -74,9 +74,12 @@
         <div class="card search-card">
           <div class="card-header">
             <span class="card-label">Данные для поиска</span>
-            <span class="card-hint">Введите известные данные — поиск выполнится по всем доступным реестрам</span>
+            <span class="card-hint">Чем больше данных — тем точнее результат</span>
           </div>
-          <form id="searchForm" class="search-form">
+          <form id="searchForm" class="search-form" enctype="multipart/form-data">
+
+            <!-- Блок: ФИО и базовые данные -->
+            <div class="form-section-label">Персональные данные</div>
             <div class="form-grid">
               <div class="form-group required">
                 <label class="form-label" for="last_name">Фамилия <span class="req-mark">*</span></label>
@@ -92,7 +95,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label" for="birth_date">Дата рождения</label>
-                <input class="form-input" type="text" id="birth_date" name="birth_date" placeholder="01.01.1990" pattern="\d{2}\.\d{2}\.\d{4}" autocomplete="off">
+                <input class="form-input" type="text" id="birth_date" name="birth_date" placeholder="01.01.1990" autocomplete="off">
               </div>
               <div class="form-group">
                 <label class="form-label" for="inn">ИНН</label>
@@ -117,6 +120,38 @@
                 </select>
               </div>
             </div>
+
+            <!-- Блок: Фото -->
+            <div class="form-section-label">
+              Фото для обратного поиска
+              <span class="form-section-hint">необязательно</span>
+            </div>
+            <div class="photo-block">
+              <div class="photo-drop" id="photoDrop">
+                <div class="photo-drop-inner" id="photoDropInner">
+                  <svg viewBox="0 0 48 48" fill="none" class="photo-drop-icon">
+                    <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="24" cy="20" r="7" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M10 38c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <span class="photo-drop-text">Перетащи фото или нажми</span>
+                  <span class="photo-drop-hint">JPG, PNG, WebP — до 5 МБ</span>
+                  <input type="file" id="photoFile" name="photo" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                </div>
+                <!-- Preview -->
+                <div class="photo-preview" id="photoPreview" style="display:none">
+                  <img id="photoPreviewImg" alt="Фото для поиска">
+                  <button type="button" class="photo-remove" id="photoRemove" title="Удалить фото">
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="photo-url-row">
+                <div class="photo-url-divider"><span>или укажи URL фото</span></div>
+                <input class="form-input mono" type="url" id="photo_url" name="photo_url" placeholder="https://example.com/photo.jpg">
+              </div>
+            </div>
+
             <div class="form-actions">
               <button class="btn btn-primary" type="submit" id="searchBtn">
                 <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.8"/><path d="M13 13L17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -128,7 +163,7 @@
               </button>
               <div class="search-disclaimer">
                 <svg viewBox="0 0 16 16" fill="none"><path d="M8 1L15 14H1L8 1Z" stroke="currentColor" stroke-width="1.2"/><path d="M8 6v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>
-                Поиск только по публичным открытым реестрам. Данные предоставляются на основании федеральных законов РФ.
+                Поиск только по публичным открытым реестрам
               </div>
             </div>
           </form>
@@ -155,7 +190,7 @@
               <div class="radar-sweep"></div>
             </div>
             <p class="loading-text">Выполняется поиск...</p>
-            <p class="loading-sub" id="loadingStatus">Запросы к государственным реестрам</p>
+            <p class="loading-sub" id="loadingStatus">Запросы к источникам</p>
           </div>
         </div>
       </section>
@@ -165,81 +200,79 @@
         <div class="page-header">
           <div class="page-title-group">
             <h1 class="page-title">Источники данных</h1>
-            <span class="page-subtitle">Открытые реестры, используемые в поиске</span>
+            <span class="page-subtitle">8 подключённых источников</span>
           </div>
         </div>
         <div class="sources-grid">
           <div class="source-card">
-            <div class="source-icon gavel">⚖</div>
+            <div class="source-icon">⚖</div>
             <div class="source-info">
               <h3>ФССП — Банк данных ИП</h3>
               <p>Исполнительные производства, долги, запреты на выезд</p>
-              <div class="source-tags">
-                <span class="stag">ФЗ №229-ФЗ</span>
-                <span class="stag">API</span>
-                <span class="stag stag-auto">Авто</span>
-              </div>
+              <div class="source-tags"><span class="stag">ФЗ №229-ФЗ</span><span class="stag stag-auto">API</span></div>
               <a href="https://fssp.gov.ru/iss/ip/" target="_blank" class="source-link">fssp.gov.ru →</a>
             </div>
           </div>
           <div class="source-card">
-            <div class="source-icon building">🏛</div>
+            <div class="source-icon">🏛</div>
             <div class="source-info">
               <h3>ФНС — ЕГРЮЛ/ЕГРИП</h3>
-              <p>ИП и юрлица, зарегистрированные на физлицо, реквизиты, статус</p>
-              <div class="source-tags">
-                <span class="stag">ФЗ №129-ФЗ</span>
-                <span class="stag">API</span>
-                <span class="stag stag-auto">Авто</span>
-              </div>
+              <p>ИП и юрлица, зарегистрированные на физлицо</p>
+              <div class="source-tags"><span class="stag">ФЗ №129-ФЗ</span><span class="stag stag-auto">API</span></div>
               <a href="https://egrul.nalog.ru/" target="_blank" class="source-link">egrul.nalog.ru →</a>
             </div>
           </div>
           <div class="source-card">
-            <div class="source-icon id-card">🪪</div>
+            <div class="source-icon">🪪</div>
             <div class="source-info">
-              <h3>ФНС — Проверка и поиск ИНН</h3>
-              <p>Определение ИНН по ФИО и дате рождения, проверка структуры</p>
-              <div class="source-tags">
-                <span class="stag">НК РФ ст. 84</span>
-                <span class="stag stag-auto">Авто</span>
-              </div>
+              <h3>ФНС — ИНН</h3>
+              <p>Поиск ИНН по ФИО и дате рождения, проверка структуры</p>
+              <div class="source-tags"><span class="stag">НК РФ ст. 84</span><span class="stag stag-auto">API</span></div>
               <a href="https://service.nalog.ru/inn.do" target="_blank" class="source-link">service.nalog.ru →</a>
             </div>
           </div>
           <div class="source-card">
-            <div class="source-icon alert">⚠</div>
+            <div class="source-icon">⚠</div>
             <div class="source-info">
               <h3>Федресурс — Банкротства</h3>
-              <p>Процедуры банкротства физлиц, арбитражные управляющие</p>
-              <div class="source-tags">
-                <span class="stag">ФЗ №127-ФЗ</span>
-                <span class="stag stag-auto">Авто</span>
-              </div>
+              <p>Процедуры банкротства физлиц</p>
+              <div class="source-tags"><span class="stag">ФЗ №127-ФЗ</span><span class="stag stag-auto">API</span></div>
               <a href="https://fedresurs.ru/search/persons" target="_blank" class="source-link">fedresurs.ru →</a>
             </div>
           </div>
           <div class="source-card">
-            <div class="source-icon scale">⚖</div>
+            <div class="source-icon">👥</div>
             <div class="source-info">
-              <h3>ГАС Правосудие</h3>
-              <p>Судебные дела и тексты решений судов общей юрисдикции</p>
-              <div class="source-tags">
-                <span class="stag">ФЗ №262-ФЗ</span>
-                <span class="stag stag-man">Ссылки</span>
-              </div>
-              <a href="https://bsr.sudrf.ru/bigs/portal.html" target="_blank" class="source-link">sudrf.ru →</a>
+              <h3>Социальные сети</h3>
+              <p>ВК (API), Telegram, Instagram, Steam, Facebook, OK, LinkedIn, TikTok, GitHub</p>
+              <div class="source-tags"><span class="stag stag-auto">VK API</span><span class="stag stag-man">Ссылки</span></div>
+              <a href="https://vk.com/search" target="_blank" class="source-link">vk.com →</a>
             </div>
           </div>
           <div class="source-card">
-            <div class="source-icon home">🏠</div>
+            <div class="source-icon">📷</div>
             <div class="source-info">
-              <h3>Росреестр + ещё 4 реестра</h3>
-              <p>Недвижимость, дисквалификация, закупки, Росфинмониторинг, КАД</p>
-              <div class="source-tags">
-                <span class="stag stag-man">Ссылки</span>
-              </div>
-              <a href="https://rosreestr.gov.ru" target="_blank" class="source-link">rosreestr.gov.ru →</a>
+              <h3>Обратный поиск по фото</h3>
+              <p>Яндекс Картинки, Google Lens, Bing Visual, TinEye</p>
+              <div class="source-tags"><span class="stag stag-man">Ссылки</span></div>
+              <a href="https://yandex.ru/images/" target="_blank" class="source-link">yandex.ru/images →</a>
+            </div>
+          </div>
+          <div class="source-card">
+            <div class="source-icon">⚖</div>
+            <div class="source-info">
+              <h3>ГАС Правосудие + КАД</h3>
+              <p>Судебные дела судов общей юрисдикции и арбитражные дела</p>
+              <div class="source-tags"><span class="stag">ФЗ №262-ФЗ</span><span class="stag stag-man">Ссылки</span></div>
+              <a href="https://sudrf.ru" target="_blank" class="source-link">sudrf.ru →</a>
+            </div>
+          </div>
+          <div class="source-card">
+            <div class="source-icon">🔗</div>
+            <div class="source-info">
+              <h3>Ещё 5 реестров</h3>
+              <p>Росреестр, ФАС-закупки, Росфинмониторинг, ФНС-дисквал., Федресурс</p>
+              <div class="source-tags"><span class="stag stag-man">Ссылки</span></div>
             </div>
           </div>
         </div>
@@ -256,36 +289,33 @@
         <div class="about-grid">
           <div class="card about-card">
             <h3>Правовая основа</h3>
-            <p>Все источники данных — исключительно публичные государственные реестры, доступ к которым обеспечивается федеральными законами РФ:</p>
             <ul class="law-list">
-              <li><strong>ФЗ №229-ФЗ</strong> — «Об исполнительном производстве» (ФССП, банк данных ИП)</li>
-              <li><strong>ФЗ №129-ФЗ</strong> — «О государственной регистрации юридических лиц и ИП» (ЕГРЮЛ/ЕГРИП)</li>
-              <li><strong>ФЗ №262-ФЗ</strong> — «Об обеспечении доступа к информации о деятельности судов» (ГАС Правосудие)</li>
-              <li><strong>ФЗ №127-ФЗ</strong> — «О несостоятельности (банкротстве)» (Федресурс)</li>
-              <li><strong>НК РФ, ст. 84</strong> — Сведения об ИНН (общедоступная часть)</li>
+              <li><strong>ФЗ №229-ФЗ</strong> — ФССП: публичный банк данных исполнительных производств</li>
+              <li><strong>ФЗ №129-ФЗ</strong> — ФНС: открытые сведения ЕГРЮЛ/ЕГРИП</li>
+              <li><strong>ФЗ №262-ФЗ</strong> — ГАС Правосудие: тексты судебных решений</li>
+              <li><strong>ФЗ №127-ФЗ</strong> — Федресурс: открытые сообщения о банкротстве</li>
+              <li><strong>НК РФ, ст. 84</strong> — сведения об ИНН (общедоступная часть)</li>
             </ul>
           </div>
           <div class="card about-card">
-            <h3>Что не делает этот инструмент</h3>
+            <h3>Что не делает</h3>
             <ul class="no-list">
               <li>Не обращается к закрытым базам данных</li>
               <li>Не использует утечки и нелегальные базы</li>
               <li>Не нарушает ФЗ №152 «О персональных данных»</li>
-              <li>Не хранит введённые пользователем данные</li>
-              <li>Не выполняет запросы без явного действия пользователя</li>
+              <li>Не хранит введённые данные и загруженные фото</li>
             </ul>
           </div>
           <div class="card about-card">
-            <h3>Технический стек</h3>
+            <h3>Стек</h3>
             <ul class="tech-list">
-              <li><span class="tech-tag">Go</span> Бэкенд, параллельные запросы к API</li>
-              <li><span class="tech-tag">HTML/CSS/JS</span> Фронтенд, без фреймворков</li>
-              <li><span class="tech-tag">embed</span> Статика встроена в бинарник</li>
-              <li><span class="tech-tag">sync.WaitGroup</span> Конкурентный поиск по всем источникам</li>
+              <li><span class="tech-tag">Go</span> Бэкенд, параллельные запросы через sync.WaitGroup</li>
+              <li><span class="tech-tag">embed</span> Статика встроена в бинарник — 1 файл</li>
+              <li><span class="tech-tag">multipart</span> Приём фото через форму, base64 в памяти</li>
+              <li><span class="tech-tag">VK API</span> Публичный поиск людей без токена</li>
             </ul>
           </div>
         </div>
-
         <div class="footer-attr">
           <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer" class="pplx-link">Created with Perplexity Computer</a>
         </div>

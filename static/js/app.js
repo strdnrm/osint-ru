@@ -9,60 +9,110 @@ navItems.forEach(btn => {
     navItems.forEach(b => b.classList.remove('active'));
     sections.forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
-    const sectionId = 'section-' + btn.dataset.section;
-    document.getElementById(sectionId)?.classList.add('active');
+    document.getElementById('section-' + btn.dataset.section)?.classList.add('active');
   });
 });
 
-// ─── Form ─────────────────────────────────────────────────────────────────────
-const form = document.getElementById('searchForm');
-const searchBtn = document.getElementById('searchBtn');
-const clearBtn = document.getElementById('clearBtn');
+// ─── Form refs ────────────────────────────────────────────────────────────────
+const form          = document.getElementById('searchForm');
+const searchBtn     = document.getElementById('searchBtn');
+const clearBtn      = document.getElementById('clearBtn');
 const loadingOverlay = document.getElementById('loadingOverlay');
-const resultsArea = document.getElementById('resultsArea');
-const resultsGrid = document.getElementById('resultsGrid');
-const resultsMeta = document.getElementById('resultsMeta');
-const resultsSummary = document.getElementById('resultsSummary');
+const resultsArea   = document.getElementById('resultsArea');
+const resultsGrid   = document.getElementById('resultsGrid');
+const resultsMeta   = document.getElementById('resultsMeta');
+const resultsSummary= document.getElementById('resultsSummary');
 const loadingStatus = document.getElementById('loadingStatus');
 
+// ─── Auto-format inputs ───────────────────────────────────────────────────────
+document.getElementById('birth_date').addEventListener('input', e => {
+  let v = e.target.value.replace(/[^\d]/g, '');
+  if (v.length > 2) v = v.slice(0,2) + '.' + v.slice(2);
+  if (v.length > 5) v = v.slice(0,5) + '.' + v.slice(5);
+  e.target.value = v.slice(0, 10);
+});
+
+document.getElementById('inn').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/[^\d]/g, '').slice(0, 12);
+});
+
+// ─── Photo upload ─────────────────────────────────────────────────────────────
+const photoDrop      = document.getElementById('photoDrop');
+const photoFile      = document.getElementById('photoFile');
+const photoPreview   = document.getElementById('photoPreview');
+const photoPreviewImg= document.getElementById('photoPreviewImg');
+const photoDropInner = document.getElementById('photoDropInner');
+const photoRemove    = document.getElementById('photoRemove');
+const photoUrlInput  = document.getElementById('photo_url');
+
+let photoDataURL = null; // base64 data URL для превью
+
+function showPhotoPreview(src) {
+  photoPreviewImg.src = src;
+  photoDropInner.style.display = 'none';
+  photoPreview.style.display  = 'flex';
+}
+
+function clearPhoto() {
+  photoDataURL = null;
+  photoFile.value = '';
+  photoPreviewImg.src = '';
+  photoPreview.style.display  = 'none';
+  photoDropInner.style.display = 'flex';
+}
+
+photoFile.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert('Файл слишком большой (макс. 5 МБ)'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    photoDataURL = ev.target.result;
+    showPhotoPreview(photoDataURL);
+    photoUrlInput.value = ''; // сбрасываем URL если загружен файл
+  };
+  reader.readAsDataURL(file);
+});
+
+photoRemove.addEventListener('click', e => {
+  e.stopPropagation();
+  clearPhoto();
+});
+
+photoUrlInput.addEventListener('input', () => {
+  if (photoUrlInput.value.trim()) clearPhoto();
+});
+
+// Drag & drop
+photoDrop.addEventListener('dragover', e => { e.preventDefault(); photoDrop.classList.add('drag-over'); });
+photoDrop.addEventListener('dragleave', () => photoDrop.classList.remove('drag-over'));
+photoDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  photoDrop.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    photoFile.files = e.dataTransfer.files;
+    const evt = new Event('change');
+    photoFile.dispatchEvent(evt);
+  }
+});
+
+// ─── Clear form ───────────────────────────────────────────────────────────────
 clearBtn.addEventListener('click', () => {
   form.reset();
+  clearPhoto();
   resultsArea.style.display = 'none';
   resultsGrid.innerHTML = '';
 });
 
-// Авто-форматирование даты
-const bdInput = document.getElementById('birth_date');
-bdInput.addEventListener('input', (e) => {
-  let val = e.target.value.replace(/[^\d]/g, '');
-  if (val.length > 2) val = val.slice(0,2) + '.' + val.slice(2);
-  if (val.length > 5) val = val.slice(0,5) + '.' + val.slice(5);
-  if (val.length > 10) val = val.slice(0,10);
-  e.target.value = val;
-});
-
-// Авто-форматирование ИНН
-const innInput = document.getElementById('inn');
-innInput.addEventListener('input', (e) => {
-  e.target.value = e.target.value.replace(/[^\d]/g, '').slice(0, 12);
-});
-
 // ─── Search ───────────────────────────────────────────────────────────────────
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  await runSearch();
-});
+form.addEventListener('submit', async e => { e.preventDefault(); await runSearch(); });
 
 async function runSearch() {
-  const data = collectFormData();
+  const lastName = document.getElementById('last_name').value.trim();
+  if (!lastName) { shakeInput(document.getElementById('last_name')); return; }
 
-  if (!data.last_name) {
-    shakeInput(document.getElementById('last_name'));
-    return;
-  }
-
-  // Show loading
-  resultsArea.style.display = 'none';
+  resultsArea.style.display  = 'none';
   loadingOverlay.style.display = 'flex';
   searchBtn.disabled = true;
 
@@ -71,75 +121,61 @@ async function runSearch() {
     'Запрос к ФНС ЕГРЮЛ/ЕГРИП...',
     'Проверка ИНН...',
     'Запрос к Федресурсу...',
-    'Формирование ссылок Росреестр...',
-    'Сборка результатов...'
+    'Поиск в ВКонтакте...',
+    'Формирование ссылок соцсетей...',
+    'Обратный поиск по фото...',
+    'Сборка результатов...',
   ];
-
-  let statusIdx = 0;
-  const statusInterval = setInterval(() => {
-    if (statusIdx < statuses.length) {
-      loadingStatus.textContent = statuses[statusIdx++];
-    }
-  }, 600);
+  let si = 0;
+  const iv = setInterval(() => { if (si < statuses.length) loadingStatus.textContent = statuses[si++]; }, 500);
 
   try {
     const t0 = Date.now();
-    const resp = await fetch('/api/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    let resp;
+
+    const hasFile = photoFile.files && photoFile.files[0];
+    const hasUrl  = photoUrlInput.value.trim();
+
+    if (hasFile) {
+      // Отправляем как multipart/form-data
+      const fd = new FormData(form);
+      resp = await fetch('/api/search', { method: 'POST', body: fd });
+    } else {
+      // Отправляем как JSON
+      const payload = {
+        last_name:   document.getElementById('last_name').value.trim(),
+        first_name:  document.getElementById('first_name').value.trim(),
+        middle_name: document.getElementById('middle_name').value.trim(),
+        birth_date:  document.getElementById('birth_date').value.trim(),
+        inn:         document.getElementById('inn').value.trim(),
+        region:      document.getElementById('region').value,
+        photo_url:   hasUrl,
+      };
+      resp = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
 
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const result = await resp.json();
+    const data = await resp.json();
     const elapsed = ((Date.now() - t0) / 1000).toFixed(2);
 
-    clearInterval(statusInterval);
+    clearInterval(iv);
     loadingOverlay.style.display = 'none';
-    renderResults(result, elapsed);
+    renderResults(data, elapsed);
 
   } catch (err) {
-    clearInterval(statusInterval);
+    clearInterval(iv);
     loadingOverlay.style.display = 'none';
-    showError(err.message);
+    showErrorState(err.message);
   } finally {
     searchBtn.disabled = false;
   }
 }
 
-function collectFormData() {
-  const fd = new FormData(form);
-  return {
-    last_name:   fd.get('last_name')?.trim() || '',
-    first_name:  fd.get('first_name')?.trim() || '',
-    middle_name: fd.get('middle_name')?.trim() || '',
-    birth_date:  fd.get('birth_date')?.trim() || '',
-    inn:         fd.get('inn')?.trim() || '',
-    region:      fd.get('region') || '-1'
-  };
-}
-
-function shakeInput(el) {
-  el.style.animation = 'none';
-  el.offsetHeight;
-  el.style.animation = 'shake 0.35s ease';
-  el.focus();
-  el.addEventListener('animationend', () => { el.style.animation = ''; }, { once: true });
-}
-
-// Добавляем анимацию shake в CSS динамически
-const shakeStyle = document.createElement('style');
-shakeStyle.textContent = `
-@keyframes shake {
-  0%,100%{transform:translateX(0)}
-  20%{transform:translateX(-6px)}
-  40%{transform:translateX(6px)}
-  60%{transform:translateX(-4px)}
-  80%{transform:translateX(4px)}
-}`;
-document.head.appendChild(shakeStyle);
-
-// ─── Render Results ───────────────────────────────────────────────────────────
+// ─── Render ───────────────────────────────────────────────────────────────────
 const SOURCE_ICONS = {
   gavel:           '⚖',
   building:        '🏛',
@@ -148,6 +184,8 @@ const SOURCE_ICONS = {
   scale:           '⚖',
   home:            '🏠',
   'external-link': '🔗',
+  users:           '👥',
+  camera:          '📷',
 };
 
 const STATUS_LABELS = {
@@ -159,48 +197,36 @@ const STATUS_LABELS = {
   pending:   'Ожидание',
 };
 
+const ORDER = { found: 0, manual: 1, not_found: 2, error: 3, skip: 4, pending: 5 };
+
 function renderResults(data, elapsed) {
   const results = data.results || [];
-
-  // Summary
   const counts = { found: 0, not_found: 0, manual: 0, error: 0 };
-  results.forEach(r => {
-    const k = r.status in counts ? r.status : 'error';
-    counts[k]++;
-  });
+  results.forEach(r => { const k = r.status in counts ? r.status : 'error'; counts[k]++; });
 
   resultsMeta.textContent = `${results.length} источников · ${elapsed}с`;
-
   resultsSummary.innerHTML = [
-    counts.found > 0    ? `<div class="summary-chip"><div class="summary-dot dot-found"></div>Найдено: ${counts.found}</div>` : '',
+    counts.found     > 0 ? `<div class="summary-chip"><div class="summary-dot dot-found"></div>Найдено: ${counts.found}</div>` : '',
     counts.not_found > 0 ? `<div class="summary-chip"><div class="summary-dot dot-not"></div>Не найдено: ${counts.not_found}</div>` : '',
-    counts.manual > 0   ? `<div class="summary-chip"><div class="summary-dot dot-manual"></div>Ссылки: ${counts.manual}</div>` : '',
-    counts.error > 0    ? `<div class="summary-chip"><div class="summary-dot dot-error"></div>Ошибок: ${counts.error}</div>` : '',
+    counts.manual    > 0 ? `<div class="summary-chip"><div class="summary-dot dot-manual"></div>Ссылки: ${counts.manual}</div>` : '',
+    counts.error     > 0 ? `<div class="summary-chip"><div class="summary-dot dot-error"></div>Ошибок: ${counts.error}</div>` : '',
   ].join('');
 
-  // Sort: found first, then manual, then not_found, then error
-  const ORDER = { found: 0, manual: 1, not_found: 2, error: 3, skip: 4, pending: 5 };
   const sorted = [...results].sort((a, b) => (ORDER[a.status] || 5) - (ORDER[b.status] || 5));
-
   resultsGrid.innerHTML = '';
-  sorted.forEach((res, i) => {
-    resultsGrid.appendChild(buildResultCard(res, i));
-  });
+  sorted.forEach(r => resultsGrid.appendChild(buildResultCard(r)));
 
   resultsArea.style.display = 'block';
   resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function buildResultCard(res, idx) {
+function buildResultCard(res) {
   const card = document.createElement('div');
   card.className = `result-card status-${res.status}`;
-  if (res.status === 'found' || res.status === 'manual') {
-    card.classList.add('expanded');
-  }
+  if (['found', 'manual'].includes(res.status)) card.classList.add('expanded');
 
   const icon = SOURCE_ICONS[res.icon] || '📋';
-  const statusLabel = STATUS_LABELS[res.status] || res.status;
-  const pillClass = `pill-${res.status}`;
+  const pill = `<span class="status-pill pill-${res.status}">${STATUS_LABELS[res.status] || res.status}</span>`;
 
   card.innerHTML = `
     <div class="result-card-header">
@@ -209,21 +235,16 @@ function buildResultCard(res, idx) {
         <span class="result-source-name">${escHtml(res.source)}</span>
       </div>
       <div class="result-header-right">
-        <span class="status-pill ${pillClass}">${statusLabel}</span>
+        ${pill}
         <svg class="chevron" viewBox="0 0 16 16" fill="none">
           <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
     </div>
-    <div class="result-card-body">
-      ${buildCardBody(res)}
-    </div>
+    <div class="result-card-body">${buildCardBody(res)}</div>
   `;
 
-  card.querySelector('.result-card-header').addEventListener('click', () => {
-    card.classList.toggle('expanded');
-  });
-
+  card.querySelector('.result-card-header').addEventListener('click', () => card.classList.toggle('expanded'));
   return card;
 }
 
@@ -231,47 +252,32 @@ function buildCardBody(res) {
   let html = '';
 
   if (res.source_url) {
-    html += `<a class="source-url-link" href="${escAttr(res.source_url)}" target="_blank" rel="noopener">
-      ${escHtml(res.source_url)} ↗
-    </a>`;
+    html += `<a class="source-url-link" href="${escAttr(res.source_url)}" target="_blank" rel="noopener">${escHtml(res.source_url)} ↗</a>`;
   }
 
   if (res.status === 'error') {
-    html += `<div class="error-msg">${escHtml(res.error || 'Неизвестная ошибка')}</div>`;
-    return html;
+    return html + `<div class="error-msg">${escHtml(res.error || 'Неизвестная ошибка')}</div>`;
   }
-
   if (res.status === 'not_found') {
-    html += `<div class="no-records">Записи не найдены в данном реестре</div>`;
-    return html;
+    return html + `<div class="no-records">Записи не найдены в данном реестре</div>`;
   }
-
   if (res.status === 'skip') {
-    html += `<div class="no-records">${escHtml(res.error || 'Источник пропущен')}</div>`;
-    return html;
+    return html + `<div class="no-records">${escHtml(res.error || 'Источник пропущен')}</div>`;
   }
-
   if (res.status === 'manual' && res.error) {
     html += `<div class="manual-note">ℹ ${escHtml(res.error)}</div>`;
   }
 
   if (!res.records || res.records.length === 0) {
     if (res.searched_url) {
-      html += `<div class="no-records">
-        <a href="${escAttr(res.searched_url)}" target="_blank" rel="noopener">Открыть в источнике ↗</a>
-      </div>`;
-    } else {
-      html += `<div class="no-records">Нет данных</div>`;
+      return html + `<div class="no-records"><a href="${escAttr(res.searched_url)}" target="_blank" rel="noopener">Открыть в источнике ↗</a></div>`;
     }
-    return html;
+    return html + `<div class="no-records">Нет данных</div>`;
   }
 
   html += '<div class="records-list">';
-  res.records.forEach(rec => {
-    html += buildRecord(rec);
-  });
+  res.records.forEach(rec => { html += buildRecord(rec); });
   html += '</div>';
-
   return html;
 }
 
@@ -280,25 +286,25 @@ function buildRecord(rec) {
 
   let fieldsHtml = '';
   (rec.fields || []).forEach(f => {
-    const valClass = getFieldValueClass(f.kind);
-    let valContent = '';
     if (f.kind === 'link') {
-      valContent = `<a href="${escAttr(f.value)}" target="_blank" rel="noopener" class="field-value link-val">${escHtml(truncate(f.value, 80))}</a>`;
+      fieldsHtml += `
+        <div class="field-row">
+          <span class="field-label">${escHtml(f.label)}</span>
+          <a href="${escAttr(f.value)}" target="_blank" rel="noopener" class="field-value link-val">${escHtml(truncate(f.value, 80))}</a>
+        </div>`;
     } else {
-      valContent = `<span class="field-value ${valClass}">${escHtml(f.value || '—')}</span>`;
+      const cls = { badge: 'badge-val', money: 'money-val', date: 'mono' }[f.kind] || '';
+      fieldsHtml += `
+        <div class="field-row">
+          <span class="field-label">${escHtml(f.label)}</span>
+          <span class="field-value ${cls}">${escHtml(f.value || '—')}</span>
+        </div>`;
     }
-    fieldsHtml += `
-      <div class="field-row">
-        <span class="field-label">${escHtml(f.label)}</span>
-        ${valContent}
-      </div>`;
   });
 
-  const sourceLink = rec.source_link
+  const srcLink = rec.source_link
     ? `<div class="record-source-link">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M7 2h3v3M10 2L5 7M4 3H2v7h7V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        </svg>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7 2h3v3M10 2L5 7M4 3H2v7h7V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         <a href="${escAttr(rec.source_link)}" target="_blank" rel="noopener">${escHtml(truncate(rec.source_link, 80))}</a>
       </div>`
     : '';
@@ -310,58 +316,41 @@ function buildRecord(rec) {
         <div class="record-tags">${tagsHtml}</div>
       </div>
       <div class="record-fields">${fieldsHtml}</div>
-      ${sourceLink}
-    </div>
-  `;
+      ${srcLink}
+    </div>`;
 }
 
-function getFieldValueClass(kind) {
-  switch (kind) {
-    case 'badge':  return 'badge-val';
-    case 'money':  return 'money-val';
-    case 'text':   return '';
-    case 'date':   return 'mono';
-    default:       return '';
-  }
-}
-
-// ─── Error state ──────────────────────────────────────────────────────────────
-function showError(msg) {
+function showErrorState(msg) {
   resultsGrid.innerHTML = `
-    <div class="card" style="border-left: 3px solid var(--red)">
-      <div class="error-msg">Ошибка запроса: ${escHtml(msg)}<br>
-        <small style="opacity:.7">Убедитесь, что сервер запущен и доступен</small>
+    <div class="card" style="border-left:3px solid var(--red)">
+      <div class="error-msg">Ошибка: ${escHtml(msg)}<br>
+        <small style="opacity:.6">Убедитесь что сервер запущен на порту 8080</small>
       </div>
-    </div>
-  `;
+    </div>`;
   resultsArea.style.display = 'block';
   resultsMeta.textContent = 'Ошибка';
   resultsSummary.innerHTML = '';
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function shakeInput(el) {
+  el.style.animation = 'none'; el.offsetHeight;
+  el.style.animation = 'shake 0.35s ease';
+  el.focus();
+  el.addEventListener('animationend', () => { el.style.animation = ''; }, { once: true });
 }
 
-function escAttr(str) {
-  return escHtml(str);
-}
+const shakeCSS = document.createElement('style');
+shakeCSS.textContent = `@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}`;
+document.head.appendChild(shakeCSS);
 
-function truncate(str, n) {
-  if (!str) return '';
-  return str.length > n ? str.slice(0, n) + '…' : str;
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function escAttr(s) { return escHtml(s); }
+function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
 
-// ─── Keyboard shortcut ────────────────────────────────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    if (!searchBtn.disabled) runSearch();
-  }
+// Ctrl/Cmd+Enter — поиск
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !searchBtn.disabled) runSearch();
 });
