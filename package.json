@@ -1,0 +1,25 @@
+{
+  "name": "osint-ru",
+  "version": "1.0.0",
+  "description": "Web app for searching Russian public government registries",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:frontend && npm run build:go",
+    "build:go": "go build -ldflags=\"-s -w\" -o osint-ru main.go",
+    "build:frontend": "echo 'Static assets are embedded — no frontend build step needed'",
+    "start": "go run main.go",
+    "dev": "go run main.go",
+    "clean": "rm -f osint-ru osint-ru-linux-amd64 osint-ru.exe",
+    "build:linux": "GOOS=linux GOARCH=amd64 go build -ldflags=\"-s -w\" -o osint-ru-linux-amd64 main.go",
+    "build:windows": "GOOS=windows GOARCH=amd64 go build -ldflags=\"-s -w\" -o osint-ru.exe main.go",
+    "build:mac": "GOOS=darwin GOARCH=arm64 go build -ldflags=\"-s -w\" -o osint-ru-mac-arm64 main.go",
+    "build:all": "npm run build:linux && npm run build:windows && npm run build:mac",
+    "lint": "go vet ./...",
+    "test": "go test ./..."
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["osint", "russia", "go", "golang", "open-source"],
+  "license": "MIT"
+}
